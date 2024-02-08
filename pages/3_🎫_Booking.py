@@ -1,6 +1,7 @@
 import streamlit as st
 import qrcode
 import random
+import pandas as pd
 from io import BytesIO
 from datetime import datetime
 
@@ -33,10 +34,18 @@ def calculate_price(distance):
         return None
 
 def book_a_ride():
+    ride_df = pd.read_csv("pages/rides.csv")
+    user_df = pd.read_csv("pages/users.csv")
+    payment_df = pd.read_csv("pages/payment.csv")
+    parameters = st.query_params
+    email = parameters.get_all(key='email')[0]
+
+    firstname = user_df[user_df['email'] == email]['firstname']
+    lastname = user_df[user_df['email'] == email]['lastname']
     st.title("Book Your Ride 📅")
 
     with st.form(key='booking_form'):
-        name = st.text_input("Name 📛", placeholder="Your Full Name")
+        name = f'{firstname[0]} {lastname[0]}'
         date = st.date_input("Date of Ride 🗓️", min_value=datetime.today())
         time_of_day = st.selectbox("Time of Day 🕒", ["Morning ☀️", "Afternoon 🌤", "Evening 🌙"])
         start = st.text_input("Start Location 🏠", placeholder="Where are you starting?")
@@ -60,7 +69,10 @@ def book_a_ride():
             st.info(f"Booking ID: **{booking_id}**")
             st.header("Your QR Code for your journey. Try scanning this 💻:")
             st.image(qr_code_img, caption="Your Ride QR Code 🚍", use_column_width=False, width=300)
-
+            with open('pages/rides.csv', 'a') as file:
+                file.write(f'\n{email},{date},{start},{stop},{distance},{booking_id}')
+            with open('pages/payment.csv', 'a') as file:
+                file.write(f'\n{email},{date},{price},{bus_type},{booking_id}')
             st.markdown(f"""<div style='border: 2px solid white; border-radius: 20px; padding: 1rem; max-width:70vw; margin:auto;'>
     <h1 style='text-align: center;'>Boarding Pass 🎫</h1>
     <hr style='background-color:#fff; width: 60vw; height:1px; margin:auto; margin-bottom: 1rem; margin-top:1rem;'/>
@@ -116,7 +128,10 @@ def book_a_ride():
         }}
     </style>
 </div>
+<br>
+<br>
 """, unsafe_allow_html=True)
+            st.link_button("Back to dashboard ➡️", url=f'/Dashboard?email={email}', type='primary')
         else:
             st.error("Invalid distance input. Please enter a valid distance in kilometers.")
     elif submit_button:

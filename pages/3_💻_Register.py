@@ -54,7 +54,7 @@ def register():
             # Provide a link to the Dashboard
             st.link_button(label="Go to Dashboard ➡️", url=f"/Dashboard?email={email}", type='primary')
             with open("pages/users.csv", 'a') as file:
-                file.write(f'\n{first_name},{last_name},{email},{new_password}')
+                file.write(f'\n{first_name.title()},{last_name.title()},{email},{new_password}')
             # Reload user data after registration
             global df
             df = pd.read_csv('pages/users.csv')

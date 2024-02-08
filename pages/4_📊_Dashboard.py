@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 # Sample data for rides and payments
 rides_data = {
@@ -26,27 +27,29 @@ payment_df = pd.read_csv("pages/payment.csv")
 def display_dashboard():
     parameters = st.query_params
     email = parameters.get_all(key='email')[0]
-    rides_df = ride_df[ride_df['email'] == email][['date','bookingid', 'start', 'end' ,'distance']]
+    rides_df = ride_df[ride_df['email'] == email].reset_index()[['date','bookingid', 'start', 'end' ,'distance']]
     rides_df = rides_df.rename(columns={'bookingid': 'Booking ID','date': 'Date', 'start': 'Start Location', 'end': 'Destination', 'distance': 'Distance (km)'})
-    firstname = user_df[user_df['email'] == email]['firstname']
-    lastname = user_df[user_df['email'] == email]['lastname']
-    payments_df = payment_df[payment_df['email'] == email][['date', 'bookingid', 'bustype','amount']]
+    firstname = np.array(user_df[user_df['email'] == email]['firstname'])
+    lastname = np.array(user_df[user_df['email'] == email]['lastname'])
+    payments_df = payment_df[payment_df['email'] == email].reset_index()[['date', 'bookingid', 'bustype','amount']]
     payments_df = payments_df.rename(columns=({'date': 'Date', 'bookingid': 'Booking ID', 'amount': 'Amount (₹)', 'bustype': 'Bus'}))
 
     # Streamlit app
     st.title("User Dashboard 📊")
 
     # Display user information
-    st.sidebar.subheader("👤 User Information")
-    st.sidebar.write(f"👤 Name: {firstname[0]} {lastname[0]}")
-    st.sidebar.write(f"✉️ Email: {email}")
+    st.sidebar.markdown("# 🧔‍♂️ User Information")
+    st.sidebar.markdown(f"### Name: {firstname[0].title()} {lastname[0].title()}")
+    st.sidebar.markdown(f"#### ✉️ Email: {email}")
+    st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+    st.sidebar.link_button("#### **⚠️ Sign Out**", url='/Register',type='secondary')
 
     # Rides section
     st.header("🚗 Rides History")
 
     # Apply styling to the rides table
     st.table(rides_df)
-    st.link_button(label="Book a new ride", url=f'/Booking?email={email}', type='primary')
+    st.link_button(label="Book a new ride 🚌", url=f'/Booking?email={email}', type='primary')
 
     # Payments section
     st.header("💰 Payments History")

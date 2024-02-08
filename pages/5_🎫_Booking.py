@@ -4,6 +4,7 @@ import random
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
+import numpy as np
 
 st.set_page_config("RiderGate | Booking", page_icon='🎫', layout='wide')
 
@@ -25,23 +26,30 @@ def generate_qr_code(data):
     img.save(buffered, format="PNG")
     return buffered.getvalue()
 
-def calculate_price(distance):
+def calculate_price(distance, bus_type):
     try:
         distance = float(distance)
-        price = distance * 5  # Assuming a rate of 5 INR per kilometer
-        return price
+        rates = {'Sleeper':20,'AC':15,'Regular':5,'Luxury':30}
+        if bus_type=='Sleeper':
+            price = distance * 20
+        elif bus_type=='AC':
+            price = distance*15
+        elif bus_type=='Regular':
+            price = distance*5
+        if bus_type=='Luxury':
+            price = distance*30
+        return price,rates[bus_type]
     except ValueError:
         return None
 
 def book_a_ride():
-    ride_df = pd.read_csv("pages/rides.csv")
+    
     user_df = pd.read_csv("pages/users.csv")
-    payment_df = pd.read_csv("pages/payment.csv")
     parameters = st.query_params
     email = parameters.get_all(key='email')[0]
 
-    firstname = user_df[user_df['email'] == email]['firstname']
-    lastname = user_df[user_df['email'] == email]['lastname']
+    firstname = np.array(user_df[user_df['email'] == email]['firstname'])
+    lastname = np.array(user_df[user_df['email'] == email]['lastname'])
     st.title("Book Your Ride 📅")
 
     with st.form(key='booking_form'):
@@ -54,13 +62,18 @@ def book_a_ride():
         bus_type = st.selectbox("Bus Type 🚌", ["Regular", "Luxury", "Sleeper", "AC"])
 
         submit_button = st.form_submit_button(label='Calculate Fare & Generate Ride Details 🛂', type='primary')
-
+    # Display user information
+    st.sidebar.markdown("# 🧔‍♂️ User Information")
+    st.sidebar.markdown(f"### Name: {firstname[0].title()} {lastname[0].title()}")
+    st.sidebar.markdown(f"#### ✉️ Email: {email}")
+    st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+    st.sidebar.link_button("#### **⚠️ Sign Out**", url='/Register',type='secondary')
     if submit_button and all([name, date, time_of_day, start, stop, distance, bus_type]):
         booking_id = generate_booking_id()
-        price = calculate_price(distance)
+        price,rate = calculate_price(distance,bus_type)
 
         if price is not None:
-            st.markdown(f"### Fare Rate: 5 INR per kilometer\n### Estimated Fare: **{price:.2f} INR**")
+            st.markdown(f"### {bus_type} Fare Rate: {rate} INR per kilometer\n### Estimated Fare: **{price:.2f} INR**")
            
             qr_data = f"Booking ID: {booking_id}\nName: {name}\nDate: {date}\nTime: {time_of_day}\nStart: {start}\nStop: {stop}\nDistance: {distance} km\nBus Type: {bus_type}\nPrice: {price:.2f} INR"
             qr_code_img = generate_qr_code(qr_data)
